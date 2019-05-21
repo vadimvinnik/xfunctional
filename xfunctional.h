@@ -35,7 +35,7 @@ namespace xfunctional
 
     static auto make()
     {
-      return [](Args ...args) -> maybe_t { return std::nullopt; };
+      return &constf<maybe_t, Args...>::make<std::nullopt>;
     }
 
     template <typename F, typename ...Fs>
