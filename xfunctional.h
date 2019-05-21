@@ -2,6 +2,7 @@
 
 #include <iterator>
 #include <type_traits>
+#include <optional>
 
 namespace xfunctional
 {
@@ -9,85 +10,81 @@ namespace xfunctional
     T id(T x) { return x; }
 
     template <typename R, typename ...Args>
-    struct constf
+    struct signature
     {
         template <R Value>
-        static R make(Args const&...) { return Value; }
-    };
+        static R constf(Args...) { return Value; }
 
-    template <typename R, typename ...Args>
-    class constf_t
-    {
-    public:
-        explicit constf_t(R const& value) : value_(value) {}
+        class constf_t
+        {
+        public:
+            explicit constf_t(R const& value) : value_(value) {}
 
-        R operator()(Args const&...) const { return value_; }
+            R operator()(Args const&...) const { return value_; }
 
-    private:
-        R const value_;
+        private:
+            R const value_;
+        };
     };
 
     template <typename R, typename ...Args>
     struct fsum_t
     {
-        static auto make(R const& bottom)
+        using maybe_t = std::optional<R>;
+
+        static auto make()
         {
-            return [&bottom](Args ...args)->R { return bottom; };
+            return [](Args ...args) -> maybe_t { return std::nullopt; };
         }
 
         template <typename F, typename ...Fs>
-        static auto make(R const& bottom, F f, Fs ...fs)
+        static auto make(F f, Fs ...fs)
         {
-            return [bottom, f, fs...](Args ...args)->R
+            return [f, fs...](Args ...args) -> maybe_t
             {
-                R const r = f(args...);
-                return (bottom != r)
+                maybe_t const r = f(args...);
+                return r.has_value()
                     ? r
-                    : make(bottom, fs...)(args...);
+                    : make(fs...)(args...);
             };
         }
 
         template <typename I>
-        static R exec(
-            R const& bottom,
+        static maybe_t exec(
             I from,
             I to,
             Args ...args)
         {
             while (from != to)
             {
-                R const r = (*from)(args...);
+                maybe_t const r = (*from)(args...);
 
-                if (bottom != r)
+                if (r.has_value())
                     return r;
 
                 ++from;
             }
 
-            return bottom;
+            return std::nullopt;
         }
 
         template <typename C>
-        static R exec(
-            R const& bottom,
+        static maybe_t exec(
             C& container,
             Args ...args)
         {
             return exec(
-                bottom,
                 std::begin(container),
                 std::end(container),
                 args...);
         }
 
         template <typename F, std::size_t N>
-        static R exec(
-            R const& bottom,
+        static maybe_t exec(
             F (&array)[N],
             Args ...args)
         {
             return exec(
-                bottom,
                 std::begin(array),
                 std::end(array),
                 args...);
