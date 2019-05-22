@@ -1,7 +1,7 @@
 #pragma once
 
 #include <iterator>
-#include <type_traits>
+#include <tuple>
 #include <optional>
 
 namespace xfunctional
@@ -10,10 +10,11 @@ namespace xfunctional
   T id(T x) { return x; }
 
   template <typename R, typename ...Args>
-  struct constf
+  struct default_constf
   {
-    template <R Value>
-    static R make(Args...) { return Value; }
+    using value_t = R;
+
+    static R make(Args...) { return {}; }
   };
 
   template <typename R, typename ...Args>
@@ -32,10 +33,11 @@ namespace xfunctional
   struct fsum
   {
     using maybe_t = std::optional<R>;
+    using funcptr_t = maybe_t(*)(Args...);
 
-    static auto make()
+    static funcptr_t make()
     {
-      return &constf<maybe_t, Args...>::make<std::nullopt>;
+      return &(default_constf<maybe_t, Args...>::make);
     }
 
     template <typename F, typename ...Fs>

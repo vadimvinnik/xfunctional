@@ -169,37 +169,42 @@ void test_exec_invocation_count()
   assert(count == 4);
 }
 
-class single_match
+template <typename R, typename ...Args>
+class single_point_t
 {
-  int const match_;
-  std::string const value_if_match_;
+  R const value_;
+  std::tuple<Args...> const args_;
 
 public:
-  single_match(
-    int const match,
-    std::string const& value_if_match) :
-  match_(match),
-  value_if_match_(value_if_match)
+  using value_t = R;
+  using maybe_t = std::optional<R>;
+
+  single_point_t(
+    R const& value,
+    Args const&... args) :
+  value_(value),
+  args_(args...)
   {}
 
-  maybe_string_t operator() (int const x) const
+  maybe_t operator() (Args ...args) const
   {
-    return match_ == x
-      ? maybe_string_t {value_if_match_}
+    return args_ == std::make_tuple(args...)
+      ? maybe_t {value_}
       : std::nullopt;
   }
 };
 
 void test_make_first_match()
 {
+  using func_t = single_point_t<std::string, int>;
   using sum_t = xfunctional::fsum<std::string, int>;
 
   auto int_to_string = sum_t::make(
-    single_match(0, "zero" ),
-    single_match(1, "one"  ),
-    single_match(2, "two"  ),
-    single_match(0, "zero2"), // !
-    single_match(3, "three")
+    func_t { "zero" , 0 },
+    func_t { "one"  , 1 },
+    func_t { "two"  , 2 },
+    func_t { "zero2", 0 }, // !
+    func_t { "three", 3 }
   );
 
   assert(int_to_string(0) == "zero");
@@ -210,15 +215,16 @@ void test_make_first_match()
 
 void test_exec_first_match()
 {
+  using func_t = single_point_t<std::string, int>;
   using sum_t = xfunctional::fsum<std::string, int>;
 
-  std::list<single_match> const int_to_string =
+  std::list<func_t> const int_to_string =
   {
-    { 0, "zero" },
-    { 1, "one"  },
-    { 2, "two"  },
-    { 0, "zero2"}, // !
-    { 3, "three"}
+    { "zero" , 0 },
+    { "one"  , 1 },
+    { "two"  , 2 },
+    { "zero2", 0 }, // !
+    { "three", 3 }
   };
 
   assert(sum_t::exec(int_to_string, 0) == "zero");
