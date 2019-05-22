@@ -169,34 +169,9 @@ void test_exec_invocation_count()
   assert(count == 4);
 }
 
-template <typename R, typename ...Args>
-class single_point_t
-{
-  R const value_;
-  std::tuple<Args...> const args_;
-
-public:
-  using value_t = R;
-  using maybe_t = std::optional<R>;
-
-  single_point_t(
-    R const& value,
-    Args const&... args) :
-  value_(value),
-  args_(args...)
-  {}
-
-  maybe_t operator() (Args ...args) const
-  {
-    return args_ == std::make_tuple(args...)
-      ? maybe_t {value_}
-      : std::nullopt;
-  }
-};
-
 void test_make_first_match()
 {
-  using func_t = single_point_t<std::string, int>;
+  using func_t = xfunctional::single_point_t<std::string, int>;
   using sum_t = xfunctional::fsum<std::string, int>;
 
   auto int_to_string = sum_t::make(
@@ -215,7 +190,7 @@ void test_make_first_match()
 
 void test_exec_first_match()
 {
-  using func_t = single_point_t<std::string, int>;
+  using func_t = xfunctional::single_point_t<std::string, int>;
   using sum_t = xfunctional::fsum<std::string, int>;
 
   std::list<func_t> const int_to_string =
